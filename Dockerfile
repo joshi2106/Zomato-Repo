@@ -1,5 +1,5 @@
 # Use Node.js 16 slim as the base image
-FROM node:16-slim
+FROM node:16-slim AS joshi
 
 # Set the working directory
 WORKDIR /app
@@ -12,6 +12,8 @@ RUN npm install
 
 # Copy the rest of the application code
 COPY . .
+
+FROM joshi AS final
 
 # Build the React app
 RUN npm run build

@@ -1,0 +1,54 @@
+pipeline {
+    agent any 
+    environment {
+        scannerHome = tool 'mysonar'
+    }
+    stages {
+        stage ("cws") {
+            steps {
+                cleanWs()
+            }
+        }
+        stage ("code") {
+            steps {
+                git branch: 'main', url: 'https://github.com/joshi2106/Zomato-Repo.git'
+            }
+        }
+        stage ("cqa") {
+            steps {
+                     withSonarQubeEnv('sonarqube') {
+                     sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=Zomatofood"
+                  } 
+            }
+        }
+        stage ("QG") {
+            steps {
+                waitForQualityGate abortPipeline: false, credentialsId: 'sonar'
+            }
+        }
+        stage ("build image") {
+            steps {
+                sh 'docker build -t img001 .'
+            }
+        }
+        stage ("scan") {
+            steps {
+                sh 'trivy image img001'
+            }
+        }
+        stage ("tag & push ") {
+            steps {
+                sh 'docker tag img001 joshi2106/zomatofood:v1'
+                withDockerRegistry(credentialsId: 'docker') {  
+                sh 'docker push joshi2106/zomatofood:v1'
+              }
+            }
+        }
+#for docker push generate script using pipeline syntax ( with doker registry endpoint
+        stage ("deploy") {
+                steps {
+                    sh 'docker run -itd --name zfc1 -p 3000:3000 joshi2106/zomatofood:v1'
+                 }
+             }
+        }
+    }
